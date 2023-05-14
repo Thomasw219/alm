@@ -5,11 +5,11 @@ seed: 1
 
 #benchmark
 benchmark: 'gym'
-id: 'HalfCheetah-v2'
+id: 'HalfCheetah-v3'
 
 #data 
-num_train_steps: 500000
-explore_steps: 5000
+num_train_steps: 1000000
+explore_steps: 0
 max_episode_steps: 1000
 env_buffer_size: 100000
 batch_size: 512
@@ -39,11 +39,11 @@ eval_bias: False
 eval_bias_interval: 500
 
 #evaluation
-eval_episode_interval: 5000
-num_eval_episodes: 5
+eval_episode_interval: 1000
+num_eval_episodes: 10
 
 #logging
-wandb_log: False
+wandb_log: True
 wandb_run_name: 'ALM'
 log_interval: 500
 

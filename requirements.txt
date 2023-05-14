@@ -45,3 +45,5 @@ typing-extensions==4.3.0
 urllib3==1.26.10
 wandb==0.12.21
 zipp==3.8.0
+
+comet-ml

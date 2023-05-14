@@ -1,5 +1,8 @@
+import collections
+
 import numpy as np
 import utils
+import gym
 
 def make_agent(env, device, cfg):
     
@@ -29,6 +32,39 @@ def make_agent(env, device, cfg):
 
     return agent
 
+def flatten(d, parent_key='', sep='_'):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, collections.MutableMapping):
+            items.extend(flatten(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+class EpisodeLengthWrapper(gym.Wrapper):
+    def __init__(self, env: gym.Env, max_episode_length: int):
+        super().__init__(env)
+        self._max_episode_length = max_episode_length
+        self._current_episode_length = 0
+
+    def step(self, action):
+        next_state, reward, done, info = self.env.step(action.copy())
+        self._current_episode_length += 1
+
+        if self._current_episode_length >= self._max_episode_length:
+            done = True
+            info['TimeLimit.truncated'] = True
+        else:
+            info['TimeLimit.truncated'] = False
+            done = False
+
+        return next_state, reward, done, info
+
+    def reset(self, **kwargs):
+        self._current_episode_length = 0
+        return self.env.reset(**kwargs)
+
 def make_env(cfg):
     if cfg.benchmark == 'gym':
         import gym
@@ -37,6 +73,7 @@ def make_env(cfg):
 
         def get_env(cfg):
             env = gym.make(cfg.id) 
+            env = EpisodeLengthWrapper(env, 100)
             env = gym.wrappers.RecordEpisodeStatistics(env)
             env.seed(seed=cfg.seed)
             env.observation_space.seed(cfg.seed)

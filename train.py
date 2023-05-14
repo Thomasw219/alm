@@ -1,4 +1,3 @@
-import wandb
 import hydra
 import warnings
 warnings.simplefilter("ignore", UserWarning)
@@ -12,15 +11,8 @@ def main(cfg: DictConfig):
     else:
         raise NotImplementedError
 
-    if cfg.wandb_log:
-        project_name = 'alm_' + cfg.id
-        with wandb.init(project=project_name, entity='raj19', config=dict(cfg), settings=wandb.Settings(start_method="thread")):
-            wandb.run.name = cfg.wandb_run_name
-            workspace = W(cfg)
-            workspace.train()
-    else:
-        workspace = W(cfg)
-        workspace.train()
+    workspace = W(cfg)
+    workspace.train()
     
 if __name__ == '__main__':
     main()

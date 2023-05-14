@@ -1,12 +1,12 @@
 import random
 import torch
 import time
-import wandb
+import comet_ml
 import numpy as np
 
 from pathlib import Path 
 from utils.env import save_frames_as_gif
-from workspaces.common import make_agent, make_env
+from workspaces.common import make_agent, make_env, flatten
 
 class MujocoWorkspace:
     def __init__(self, cfg):
@@ -22,6 +22,15 @@ class MujocoWorkspace:
         self._train_step = 0
         self._train_episode = 0
         self._best_eval_returns = -np.inf
+
+        self.experiment = comet_ml.Experiment(
+            api_key = "e1Xmlzbz1cCLgwe0G8m7G58ns",
+            project_name = "alm",
+            workspace="thomasw219",
+        )
+        self.experiment.add_tag(self.cfg.id)
+
+        self.experiment.log_parameters(flatten(self.cfg))
 
     def set_seed(self):
         random.seed(self.cfg.seed)
@@ -56,7 +65,8 @@ class MujocoWorkspace:
 
             self.agent.env_buffer.push((state, action, reward, next_state, False if info.get("TimeLimit.truncated", False) else done))
 
-            self.agent.update(self._train_step)
+            if self._train_step >= 5000:
+                self.agent.update(self._train_step)
 
             if (self._train_step)%self.cfg.eval_episode_interval==0:
                 self._eval()
@@ -73,7 +83,7 @@ class MujocoWorkspace:
                     episode_metrics['episodic_return'] = info["episode"]["r"]
                     episode_metrics['steps_per_second'] = info["episode"]["l"]/(time.time() - episode_start_time)
                     episode_metrics['env_buffer_length'] = len(self.agent.env_buffer)
-                    wandb.log(episode_metrics, step=self._train_step)
+                    self.experiment.log_metrics(episode_metrics, step=self._train_step)
                 state, done, episode_start_time = self.train_env.reset(), False, time.time()
             else:
                 state = next_state
@@ -87,7 +97,7 @@ class MujocoWorkspace:
             done = False 
             state = self.eval_env.reset()
             while not done:
-                action = self.agent.get_action(state, self._train_step, True)
+                action = self.agent.get_action(state, self._train_step, False)
                 next_state, _, done ,info = self.eval_env.step(action)
                 state = next_state
                 
@@ -105,7 +115,7 @@ class MujocoWorkspace:
             self._best_eval_returns = returns/self.cfg.num_eval_episodes
 
         if self.cfg.wandb_log:
-            wandb.log(eval_metrics, step = self._train_step)
+            self.experiment.log_metrics(eval_metrics, step = self._train_step)
 
     def _render_episodes(self, record):
         frames = []

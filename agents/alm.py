@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.distributions as td
 import torch.nn.functional as F
 import numpy as np
-import wandb
 import utils
 from models import Encoder, ModelPrior, RewardPrior, Discriminator, Critic, Actor
 
@@ -113,9 +112,6 @@ class AlmAgent(object):
         if step%self.target_update_interval==0:
             utils.soft_update(self.encoder_target, self.encoder, self.tau)
             utils.soft_update(self.critic_target, self.critic, self.tau)
-
-        if log: 
-            wandb.log(metrics, step=step)  
 
     def update_representation(self, std, step, log, metrics):    
         state_seq, action_seq, reward_seq, next_state_seq, done_seq = self.env_buffer.sample_seq(self.seq_len, self.batch_size)
