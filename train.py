@@ -1,5 +1,6 @@
 import hydra
 import warnings
+import dm2gym
 warnings.simplefilter("ignore", UserWarning)
 
 from omegaconf import DictConfig

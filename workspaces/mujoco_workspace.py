@@ -31,6 +31,7 @@ class MujocoWorkspace:
         self.experiment.add_tag(self.cfg.id)
 
         self.experiment.log_parameters(flatten(self.cfg))
+        self.experiment.log_parameter('ep_len', 100)
 
     def set_seed(self):
         random.seed(self.cfg.seed)

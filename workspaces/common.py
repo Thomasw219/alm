@@ -65,6 +65,43 @@ class EpisodeLengthWrapper(gym.Wrapper):
         self._current_episode_length = 0
         return self.env.reset(**kwargs)
 
+class DMObsWrapper(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self._max_episode_steps = env._max_episode_steps
+        self.observation_space = env.observation_space['observations']
+
+    def observation(self,obs):
+        return obs['observations']
+
+class DoneZeroRewardWrapper(gym.Wrapper):
+    '''
+    Sets reward at any timestep after first termination event to 0
+    (so you'll still get the reward associated with terminating, but will be 0 afterwards)
+    Also acts as a no termination wrapper
+    '''
+    def __init__(self,env):
+        super().__init__(env)
+        self.env = env
+        self.observation_space = env.observation_space
+        self.action_space = env.action_space
+        self._max_episode_steps = env._max_episode_steps
+
+    def reset(self):
+        self.done = False
+        return self.env.reset()
+    
+    def step(self,action):
+        next_state,reward,d,info= self.env.step(action)
+        if self.done:
+            reward = 0
+        
+        # if the episode would normally terminate, update our own "done" flag
+        if d:
+            self.done = True
+
+        return next_state,reward,False,info
+
 def make_env(cfg):
     if cfg.benchmark == 'gym':
         import gym
@@ -72,7 +109,11 @@ def make_env(cfg):
             utils.register_mbpo_environments()
 
         def get_env(cfg):
-            env = gym.make(cfg.id) 
+            env = gym.make(cfg.id, **({'environment_kwargs' : {'flat_observation':True}} if 'dm2gym' in cfg.id else {})) 
+            if 'dm2gym' in cfg.id:
+                env = DMObsWrapper(env)
+            if 'Walker2d' in cfg.id:
+                env = DoneZeroRewardWrapper(env)
             env = EpisodeLengthWrapper(env, 100)
             env = gym.wrappers.RecordEpisodeStatistics(env)
             env.seed(seed=cfg.seed)
